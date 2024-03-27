@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EV Data Visualization</title>
+</head>
+<body>
+    <h1>EV Data Visualization</h1>
+    
+    <form action="/data" method="get">
+        <label for="year">Select Year:</label>
+        <select name="year" id="year">
+            <option value="">All Years</option>
+            <option value="2016">2016</option>
+            <option value="2017">2017</option>
+            <option value="2018">2018</option>
+            <option value="2019">2019</option>
+            <option value="2020">2020</option>
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+    
+    <img src="{{ url_for('static', filename=chart_filename) }}" alt="EV Registration Counts">
+</body>
+</html>

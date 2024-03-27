@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EV Data Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>EV Registration Counts by State</h1>
+    
+    <img src="{{ url_for('static', filename=chart_filename) }}" alt="EV Registration Counts">
+    
+    <p><a href="/">Back to Home</a></p>
+</body>
+</html>
