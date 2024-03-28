@@ -10,17 +10,17 @@
         h1 {
             color: #333;
         }
-        img {
-            max-width: 100%;
-            height: auto;
-            margin-top: 20px;
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
         }
     </style>
 </head>
 <body>
-    <h1>EV Registration Counts by State</h1>
+    <h1>EV Registration Percentages by State</h1>
     
-    <img src="{{ url_for('static', filename=chart_filename) }}" alt="EV Registration Counts">
+    <iframe src="{{ url_for('static', filename=chart_filename) }}" frameborder="0"></iframe>
     
     <p><a href="/">Back to Home</a></p>
 </body>

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
 import os
 
 app = Flask(__name__)
@@ -12,6 +12,11 @@ def load_data(year):
     print(data.head())
     print(f"Column names: {data.columns}")
     return data
+
+def load_state_mapping():
+    filename = os.path.join("Raw Data", "state_mapping.csv")
+    mapping = pd.read_csv(filename)
+    return mapping
 
 @app.route('/')
 def index():
@@ -30,27 +35,36 @@ def data():
     print(data.head())
     print(f"Column names: {data.columns}")
     
+    # Load state mapping data
+    state_mapping = load_state_mapping()
+    
+    # Merge the state mapping with the EV data
+    data = pd.merge(data, state_mapping, on='State', how='left')
+    
     # Process the data and create visualizations
-    states = data['State']
-    ev_counts = data['Electric (EV)']
-
-    # Sort the states based on EV counts in descending order
-    sorted_data = sorted(zip(states, ev_counts), key=lambda x: x[1], reverse=True)
-
-    # Get the top N states and their EV counts
-    top_n = 10
-    top_states, top_ev_counts = zip(*sorted_data[:top_n])
-
-    plt.figure(figsize=(10, 6))
-    plt.barh(top_states, top_ev_counts)
-    plt.xlabel('Number of EVs')
-    plt.ylabel('State')
-    plt.title(f'Top {top_n} States by EV Registration Counts')
-    plt.tight_layout()
-
-    chart_filename = f"ev_chart_{year}.png" if year else "ev_chart_all.png"
+    data['EV Percentage'] = (data['Electric (EV)'] / (data['Electric (EV)'] + data['Gasoline'])) * 100
+    
+    # Round the 'EV Percentage' values and convert them to strings with a percentage sign
+    data['EV Percentage'] = data['EV Percentage'].apply(lambda x: f"{round(x, 2)}%")
+    
+    # Create a color scale with 0.2% intervals
+    min_val = 0
+    max_val = data['EV Percentage'].str.rstrip('%').astype(float).max()
+    num_intervals = int((max_val - min_val) / 0.2) + 1
+    [(i / (num_intervals - 1), px.colors.sequential.Viridis[i]) for i in range(num_intervals)]
+    
+    # Create a choropleth map using Plotly
+    fig = px.choropleth(data,
+                        locations='State Code',
+                        locationmode='USA-states',
+                        color='EV Percentage',
+                        color_discrete_map={f"{round(min_val + i * 0.2, 2)}%": color for i, color in enumerate(px.colors.sequential.Viridis)},
+                        scope='usa',
+                        title='EV Registration Percentages by State')
+    
+    chart_filename = f"ev_chart_{year}.html" if year else "ev_chart_all.html"
     chart_path = os.path.join(app.root_path, 'static', chart_filename)
-    plt.savefig(chart_path)
+    fig.write_html(chart_path)
     
     return render_template('data.html', chart_filename=chart_filename)
 
