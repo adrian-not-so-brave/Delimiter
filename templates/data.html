@@ -15,12 +15,45 @@
             height: 600px;
             border: none;
         }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
     <h1>EV Registration Percentages by State</h1>
     
     <iframe src="{{ url_for('static', filename=chart_filename) }}" frameborder="0"></iframe>
+    
+    <h2>Total Pounds of CO2 Equivalent by Car Type</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Car Type</th>
+                <th>Total Pounds of CO2 Equivalent</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in emissions_data %}
+            <tr>
+                <td>{{ row['Car Type'] }}</td>
+                <td>{{ row['Total Pounds of CO2 Equivalent'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <h2>Charging Station Information</h2>
+    <p>Year: {{ charging_data['Year'] }}</p>
+    <p>EVSE Ports: {{ charging_data['EVSE Ports'].strip() }}</p>
+    <p>Station Locations: {{ charging_data['Station Locations'].strip() }}</p>
     
     <p><a href="/">Back to Home</a></p>
 </body>
