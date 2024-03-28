@@ -30,6 +30,7 @@ def data():
     else:
         # Load data for all years and combine them
         data = pd.concat([load_data(year) for year in [2016, 2017, 2018, 2019, 2020]])
+        data = data.groupby('State').sum().reset_index()
     
     print("Combined data:")
     print(data.head())
@@ -43,24 +44,32 @@ def data():
     
     # Process the data and create visualizations
     data['EV Percentage'] = (data['Electric (EV)'] / (data['Electric (EV)'] + data['Gasoline'])) * 100
-    
-    # Round the 'EV Percentage' values and convert them to strings with a percentage sign
-    data['EV Percentage'] = data['EV Percentage'].apply(lambda x: f"{round(x, 2)}%")
-    
-    # Create a color scale with 0.2% intervals
-    min_val = 0
-    max_val = data['EV Percentage'].str.rstrip('%').astype(float).max()
-    num_intervals = int((max_val - min_val) / 0.2) + 1
-    [(i / (num_intervals - 1), px.colors.sequential.Viridis[i]) for i in range(num_intervals)]
+    data['EV Percentage'] = data['EV Percentage'].round(2)
     
     # Create a choropleth map using Plotly
     fig = px.choropleth(data,
                         locations='State Code',
                         locationmode='USA-states',
                         color='EV Percentage',
-                        color_discrete_map={f"{round(min_val + i * 0.2, 2)}%": color for i, color in enumerate(px.colors.sequential.Viridis)},
+                        color_continuous_scale='Viridis',
+                        range_color=(0, data['EV Percentage'].max()),
                         scope='usa',
-                        title='EV Registration Percentages by State')
+                        title='EV Registration Percentages by State',
+                        hover_name='State',
+                        hover_data={'State Code': False,
+                                    'EV Percentage': ':.2f',
+                                    'Electric (EV)': ':,',
+                                    'Gasoline': ':,'}
+                        )
+    
+    # Customize the colorbar
+    fig.update_layout(
+        coloraxis_colorbar=dict(
+            title='EV Percentage',
+            tickvals=[i for i in range(0, int(data['EV Percentage'].max()) + 1, 2)],
+            ticktext=[f"{i}%" for i in range(0, int(data['EV Percentage'].max()) + 1, 2)]
+        )
+    )
     
     chart_filename = f"ev_chart_{year}.html" if year else "ev_chart_all.html"
     chart_path = os.path.join(app.root_path, 'static', chart_filename)
