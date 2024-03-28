@@ -27,7 +27,8 @@ def load_charging_data(year):
     if year:
         data = data[data['Year'] == int(year)].iloc[0]
     else:
-        data = data.iloc[-1]
+        data = data.sum(numeric_only=True)
+        data['Year'] = 'All Years'
     return data
 
 @app.route('/')
@@ -73,14 +74,23 @@ def data():
     )
     
     emissions_data = load_emissions_data()
+    
+    # Create a bar chart for Total Pounds of CO2 Equivalent by Car Type
+    bar_fig = px.bar(emissions_data, x='Car Type', y='Total Pounds of CO2 Equivalent',
+                     title='Total Pounds of CO2 Equivalent by Car Type')
+    
     charging_data = load_charging_data(year)
     
     chart_filename = f"ev_chart_{year}.html" if year else "ev_chart_all.html"
     chart_path = os.path.join(app.root_path, 'static', chart_filename)
     fig.write_html(chart_path)
     
+    bar_chart_filename = "emissions_bar_chart.html"
+    bar_chart_path = os.path.join(app.root_path, 'static', bar_chart_filename)
+    bar_fig.write_html(bar_chart_path)
+    
     return render_template('data.html', chart_filename=chart_filename,
-                           emissions_data=emissions_data.to_dict(orient='records'),
+                           bar_chart_filename=bar_chart_filename,
                            charging_data=charging_data)
 
 if __name__ == '__main__':
