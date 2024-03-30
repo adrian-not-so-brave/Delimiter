@@ -5,7 +5,7 @@ import os
 
 app = Flask(__name__)
 
-def load_data(year):
+def load_us_data(year):
     filename = os.path.join("Raw Data", f"{year}.csv")
     data = pd.read_csv(filename, thousands=',', skiprows=1, header=0)
     return data
@@ -29,6 +29,17 @@ def load_charging_data(year):
     else:
         data = data.sum(numeric_only=True)
         data['Year'] = 'All Years'
+        data = data.astype({'Year': str})  # Convert 'Year' column to string dtype
+    return data
+
+def load_eu_data(year):
+    filename = os.path.join("Raw Data", f"{year}_registrationEU.csv")
+    data = pd.read_csv(filename, sep='\t', thousands=',', skiprows=1)
+    data = data.iloc[:, :-1]  # Remove the last column
+    data = data.melt(id_vars=[data.columns[0]], var_name='Month', value_name='Registrations')
+    data.columns = ['Country', 'Month', 'Registrations']
+    data['Registrations'] = pd.to_numeric(data['Registrations'], errors='coerce')
+    data = data.groupby('Country')['Registrations'].sum().reset_index()
     return data
 
 @app.route('/')
@@ -37,61 +48,77 @@ def index():
 
 @app.route('/data')
 def data():
-    year = request.args.get('year', default=None)
-    if year:
-        data = load_data(year)
-    else:
-        data = pd.concat([load_data(year) for year in [2016, 2017, 2018, 2019, 2020]])
-        data = data.groupby('State').sum().reset_index()
-    
-    state_mapping = load_state_mapping()
-    data = pd.merge(data, state_mapping, on='State', how='left')
-    
-    data['EV Percentage'] = (data['Electric (EV)'] / (data['Electric (EV)'] + data['Gasoline'])) * 100
-    data['EV Percentage'] = data['EV Percentage'].round(2)
-    
-    fig = px.choropleth(data,
-                        locations='State Code',
-                        locationmode='USA-states',
-                        color='EV Percentage',
-                        color_continuous_scale='Viridis',
-                        range_color=(0, data['EV Percentage'].max()),
-                        scope='usa',
-                        title='EV Registration Percentages by State',
-                        hover_name='State',
-                        hover_data={'State Code': False,
-                                    'EV Percentage': ':.2f',
-                                    'Electric (EV)': ':,',
-                                    'Gasoline': ':,'}
-                        )
-    
-    fig.update_layout(
-        coloraxis_colorbar=dict(
-            title='EV Percentage',
-            tickvals=[i for i in range(0, int(data['EV Percentage'].max()) + 1, 2)],
-            ticktext=[f"{i}%" for i in range(0, int(data['EV Percentage'].max()) + 1, 2)]
+    data_type = request.args.get('data_type')
+    us_year = request.args.get('us_year', default=None)
+    eu_year = request.args.get('eu_year', default=None)
+
+    if data_type == 'us':
+        if us_year:
+            us_data = load_us_data(us_year)
+        else:
+            us_data = pd.concat([load_us_data(year) for year in [2016, 2017, 2018, 2019, 2020]])
+            us_data = us_data.groupby('State').sum().reset_index()
+
+        state_mapping = load_state_mapping()
+        us_data = pd.merge(us_data, state_mapping, on='State', how='left')
+
+        us_data['EV Percentage'] = (us_data['Electric (EV)'] / (us_data['Electric (EV)'] + us_data['Gasoline'])) * 100
+        us_data['EV Percentage'] = us_data['EV Percentage'].round(2)
+
+        us_fig = px.choropleth(us_data,
+                               locations='State Code',
+                               locationmode='USA-states',
+                               color='EV Percentage',
+                               color_continuous_scale='Viridis',
+                               range_color=(0, us_data['EV Percentage'].max()),
+                               scope='usa',
+                               title='US EV Registration Percentages by State',
+                               hover_name='State',
+                               hover_data={'State Code': False,
+                                           'EV Percentage': ':.2f',
+                                           'Electric (EV)': ':,',
+                                           'Gasoline': ':,'}
+                               )
+
+        us_fig.update_layout(
+            coloraxis_colorbar=dict(
+                title='EV Percentage',
+                tickvals=[i for i in range(0, int(us_data['EV Percentage'].max()) + 1, 2)],
+                ticktext=[f"{i}%" for i in range(0, int(us_data['EV Percentage'].max()) + 1, 2)]
+            )
         )
-    )
-    
-    emissions_data = load_emissions_data()
-    
-    # Create a bar chart for Total Pounds of CO2 Equivalent by Car Type
-    bar_fig = px.bar(emissions_data, x='Car Type', y='Total Pounds of CO2 Equivalent',
-                     title='Total Pounds of CO2 Equivalent by Car Type')
-    
-    charging_data = load_charging_data(year)
-    
-    chart_filename = f"ev_chart_{year}.html" if year else "ev_chart_all.html"
-    chart_path = os.path.join(app.root_path, 'static', chart_filename)
-    fig.write_html(chart_path)
-    
-    bar_chart_filename = "emissions_bar_chart.html"
-    bar_chart_path = os.path.join(app.root_path, 'static', bar_chart_filename)
-    bar_fig.write_html(bar_chart_path)
-    
-    return render_template('data.html', chart_filename=chart_filename,
-                           bar_chart_filename=bar_chart_filename,
-                           charging_data=charging_data)
+
+        us_chart_filename = f"us_ev_chart_{us_year}.html" if us_year else "us_ev_chart_all.html"
+        us_chart_path = os.path.join(app.root_path, 'static', us_chart_filename)
+        us_fig.write_html(us_chart_path)
+
+        emissions_data = load_emissions_data()
+        charging_data = load_charging_data(us_year)
+
+        return render_template('data.html', us_chart_filename=us_chart_filename,
+                               emissions_data=emissions_data.to_dict(orient='records'),
+                               charging_data=charging_data)
+
+    elif data_type == 'eu':
+        eu_data = load_eu_data(eu_year)
+        eu_fig = px.choropleth(eu_data,
+                       locations='Country',
+                       locationmode='country names',  # Use 'country names' instead of 'europe'
+                       color='Registrations',
+                       color_continuous_scale='Viridis',
+                       scope='europe',
+                       title='EU Vehicle Registrations by Country',
+                       hover_name='Country',
+                       hover_data={'Registrations': ':,'}
+                       )
+
+        eu_chart_filename = f"eu_registration_chart_{eu_year}.html" if eu_year else "eu_registration_chart_all.html"
+        eu_chart_path = os.path.join(app.root_path, 'static', eu_chart_filename)
+        eu_fig.write_html(eu_chart_path)
+
+        return render_template('data.html', eu_chart_filename=eu_chart_filename)
+
+    return render_template('data.html')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

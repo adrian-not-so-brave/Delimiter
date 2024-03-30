@@ -7,8 +7,8 @@
     <h1>EV Data Visualization</h1>
     
     <form action="/data" method="get">
-        <label for="year">Select Year:</label>
-        <select name="year" id="year">
+        <label for="us_year">Select US Year:</label>
+        <select name="us_year" id="us_year">
             <option value="">All Years</option>
             <option value="2016">2016</option>
             <option value="2017">2017</option>
@@ -16,7 +16,18 @@
             <option value="2019">2019</option>
             <option value="2020">2020</option>
         </select>
-        <button type="submit">Filter</button>
+        <button type="submit" name="data_type" value="us">Filter US Data</button>
+        <br>
+        <label for="eu_year">Select EU Year:</label>
+        <select name="eu_year" id="eu_year">
+            <option value="">All Years</option>
+            <option value="2016">2016</option>
+            <option value="2017">2017</option>
+            <option value="2018">2018</option>
+            <option value="2019">2019</option>
+            <option value="2020">2020</option>
+        </select>
+        <button type="submit" name="data_type" value="eu">Filter EU Data</button>
     </form>
 </body>
 </html>

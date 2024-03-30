@@ -84,31 +84,51 @@
     </header>
     
     <main>
-        <h1>EV Registration Percentages by State</h1>
-        <iframe src="{{ url_for('static', filename=chart_filename) }}" frameborder="0"></iframe>
-        
-        <h2>Total Pounds of CO2 Equivalent by Car Type</h2>
-        <iframe src="{{ url_for('static', filename=bar_chart_filename) }}" frameborder="0"></iframe>
-        
-        <h2>Charging Station Information</h2>
-        <table>
-            <tr>
-                <th>Year</th>
-                <td>{{ charging_data['Year'] }}</td>
-            </tr>
-            <tr>
-                <th>EVSE Ports</th>
-                <td>{{ charging_data['EVSE Ports'] }}</td>
-            </tr>
-            <tr>
-                <th>Station Locations</th>
-                <td>{{ charging_data['Station Locations'] }}</td>
-            </tr>
-        </table>
+        {% if us_chart_filename %}
+            <h1>US EV Registration Percentages by State</h1>
+            <iframe src="{{ url_for('static', filename=us_chart_filename) }}" frameborder="0"></iframe>
+            
+            <h2>Total Pounds of CO2 Equivalent by Car Type</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Car Type</th>
+                        <th>Total Pounds of CO2 Equivalent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in emissions_data %}
+                    <tr>
+                        <td>{{ row['Car Type'] }}</td>
+                        <td>{{ row['Total Pounds of CO2 Equivalent'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <h2>Charging Station Information</h2>
+            <table>
+                <tr>
+                    <th>Year</th>
+                    <td>{{ charging_data['Year'] }}</td>
+                </tr>
+                <tr>
+                    <th>EVSE Ports</th>
+                    <td>{{ charging_data['EVSE Ports'] }}</td>
+                </tr>
+                <tr>
+                    <th>Station Locations</th>
+                    <td>{{ charging_data['Station Locations'] }}</td>
+                </tr>
+            </table>
+        {% elif eu_chart_filename %}
+            <h1>EU Vehicle Registrations by Country</h1>
+            <iframe src="{{ url_for('static', filename=eu_chart_filename) }}" frameborder="0"></iframe>
+        {% endif %}
     </main>
     
     <footer>
-         2024 EV Data Visualization
+        &copy; 2023 EV Data Visualization. All rights reserved.
     </footer>
 </body>
 </html>
