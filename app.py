@@ -6,8 +6,18 @@ import os
 app = Flask(__name__)
 
 def load_us_data(year):
-    filename = os.path.join("Raw Data", f"{year}.csv")
-    data = pd.read_csv(filename, thousands=',', skiprows=1, header=0)
+    if year:
+        filename = os.path.join("Raw Data", f"{year}.csv")
+        data = pd.read_csv(filename, thousands=',', skiprows=1, header=0)
+    else:
+        filenames = [os.path.join("Raw Data", f"{yr}.csv") for yr in [2016, 2017, 2018, 2019, 2020]]
+        data_frames = []
+        for filename in filenames:
+            df = pd.read_csv(filename, thousands=',', skiprows=1, header=0)
+            data_frames.append(df)
+        data = pd.concat(data_frames)
+        data = data.groupby('State').sum().reset_index()
+    
     return data
 
 def load_state_mapping():
@@ -29,17 +39,35 @@ def load_charging_data(year):
     else:
         data = data.sum(numeric_only=True)
         data['Year'] = 'All Years'
-        data = data.astype({'Year': str})  # Convert 'Year' column to string dtype
     return data
 
 def load_eu_data(year):
-    filename = os.path.join("Raw Data", f"{year}_registrationEU.csv")
-    data = pd.read_csv(filename, sep='\t', thousands=',', skiprows=1)
-    data = data.iloc[:, :-1]  # Remove the last column
-    data = data.melt(id_vars=[data.columns[0]], var_name='Month', value_name='Registrations')
-    data.columns = ['Country', 'Month', 'Registrations']
-    data['Registrations'] = pd.to_numeric(data['Registrations'], errors='coerce')
-    data = data.groupby('Country')['Registrations'].sum().reset_index()
+    if year:
+        filename = os.path.join("Raw Data", f"{year}_registrationEU.csv")
+        data = pd.read_csv(filename, sep='\t', thousands=',', skiprows=1)
+        data = data.iloc[:, :-1]  # Remove the last column
+        data = data.melt(id_vars=[data.columns[0]], var_name='Month', value_name='Registrations')
+        data.columns = ['Country', 'Month', 'Registrations']
+        data['Registrations'] = pd.to_numeric(data['Registrations'], errors='coerce')
+        data = data.groupby('Country')['Registrations'].sum().reset_index()
+    else:
+        filenames = [os.path.join("Raw Data", f"{yr}_registrationEU.csv") for yr in [2016, 2017, 2018, 2019, 2020]]
+        data_frames = []
+        for filename in filenames:
+            df = pd.read_csv(filename, sep='\t', thousands=',', skiprows=1)
+            df = df.iloc[:, :-1]  # Remove the last column
+            df = df.melt(id_vars=[df.columns[0]], var_name='Month', value_name='Registrations')
+            df.columns = ['Country', 'Month', 'Registrations']
+            df['Registrations'] = pd.to_numeric(df['Registrations'], errors='coerce')
+            data_frames.append(df)
+        data = pd.concat(data_frames)
+        data = data.groupby('Country')['Registrations'].sum().reset_index()
+    
+    return data
+
+def load_eu_ev_data():
+    filename = os.path.join("Raw Data", "new-electric-vehicles-by-country-3.csv")
+    data = pd.read_csv(filename)
     return data
 
 @app.route('/')
@@ -102,21 +130,23 @@ def data():
     elif data_type == 'eu':
         eu_data = load_eu_data(eu_year)
         eu_fig = px.choropleth(eu_data,
-                       locations='Country',
-                       locationmode='country names',  # Use 'country names' instead of 'europe'
-                       color='Registrations',
-                       color_continuous_scale='Viridis',
-                       scope='europe',
-                       title='EU Vehicle Registrations by Country',
-                       hover_name='Country',
-                       hover_data={'Registrations': ':,'}
-                       )
+                               locations='Country',
+                               locationmode='country names',
+                               color='Registrations',
+                               color_continuous_scale='Viridis',
+                               scope='europe',
+                               title='EU Vehicle Registrations by Country',
+                               hover_name='Country',
+                               hover_data={'Registrations': ':,'}
+                               )
 
         eu_chart_filename = f"eu_registration_chart_{eu_year}.html" if eu_year else "eu_registration_chart_all.html"
         eu_chart_path = os.path.join(app.root_path, 'static', eu_chart_filename)
         eu_fig.write_html(eu_chart_path)
 
-        return render_template('data.html', eu_chart_filename=eu_chart_filename)
+        eu_ev_data = load_eu_ev_data()  # Load the new EU EV dataset
+
+        return render_template('data.html', eu_chart_filename=eu_chart_filename, eu_ev_data=eu_ev_data.to_dict(orient='records'))
 
     return render_template('data.html')
 

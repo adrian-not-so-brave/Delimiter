@@ -124,6 +124,28 @@
         {% elif eu_chart_filename %}
             <h1>EU Vehicle Registrations by Country</h1>
             <iframe src="{{ url_for('static', filename=eu_chart_filename) }}" frameborder="0"></iframe>
+
+            <h2>EU Electric Vehicle Registrations</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Country</th>
+                        <th>Battery Electric Vehicles</th>
+                        <th>Plug-in Hybrid Electric Vehicles</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in eu_ev_data %}
+                    <tr>
+                        <td>{{ row['Country:text'] }}</td>
+                        <td>{{ row['Battery electric vehicels (number):number'] }}</td>
+                        <td>{{ row['Plug-in hybrid electric vehicles (number):number'] }}</td>
+                        <td>{{ row['Total:number'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         {% endif %}
     </main>
     
