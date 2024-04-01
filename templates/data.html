@@ -84,27 +84,16 @@
     </header>
     
     <main>
-        {% if us_chart_filename %}
+        {% if us_chart_html %}
             <h1>US EV Registration Percentages by State</h1>
-            <iframe src="{{ url_for('static', filename=us_chart_filename) }}" frameborder="0"></iframe>
+            <div>
+                {{ us_chart_html|safe }}
+            </div>
             
             <h2>Total Pounds of CO2 Equivalent by Car Type</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Car Type</th>
-                        <th>Total Pounds of CO2 Equivalent</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in emissions_data %}
-                    <tr>
-                        <td>{{ row['Car Type'] }}</td>
-                        <td>{{ row['Total Pounds of CO2 Equivalent'] }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div>
+                {{ emissions_chart_html|safe }}
+            </div>
             
             <h2>Charging Station Information</h2>
             <table>
@@ -121,9 +110,11 @@
                     <td>{{ charging_data['Station Locations'] }}</td>
                 </tr>
             </table>
-        {% elif eu_chart_filename %}
+        {% elif eu_chart_html %}
             <h1>EU Vehicle Registrations by Country</h1>
-            <iframe src="{{ url_for('static', filename=eu_chart_filename) }}" frameborder="0"></iframe>
+            <div>
+                {{ eu_chart_html|safe }}
+            </div>
 
             <h2>EU Electric Vehicle Registrations</h2>
             <table>

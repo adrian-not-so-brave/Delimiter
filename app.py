@@ -37,7 +37,7 @@ def load_charging_data(year):
     if year:
         data = data[data['Year'] == int(year)].iloc[0]
     else:
-        data = data.sum(numeric_only=True)
+        data = data.sum(numeric_only=True).to_dict()
         data['Year'] = 'All Years'
     return data
 
@@ -81,12 +81,7 @@ def data():
     eu_year = request.args.get('eu_year', default=None)
 
     if data_type == 'us':
-        if us_year:
-            us_data = load_us_data(us_year)
-        else:
-            us_data = pd.concat([load_us_data(year) for year in [2016, 2017, 2018, 2019, 2020]])
-            us_data = us_data.groupby('State').sum().reset_index()
-
+        us_data = load_us_data(us_year)
         state_mapping = load_state_mapping()
         us_data = pd.merge(us_data, state_mapping, on='State', how='left')
 
@@ -116,15 +111,17 @@ def data():
             )
         )
 
-        us_chart_filename = f"us_ev_chart_{us_year}.html" if us_year else "us_ev_chart_all.html"
-        us_chart_path = os.path.join(app.root_path, 'static', us_chart_filename)
-        us_fig.write_html(us_chart_path)
+        us_chart_html = us_fig.to_html(full_html=False)
 
         emissions_data = load_emissions_data()
+        emissions_fig = px.bar(emissions_data, x='Car Type', y='Total Pounds of CO2 Equivalent',
+                               title='Total Pounds of CO2 Equivalent by Car Type')
+        emissions_chart_html = emissions_fig.to_html(full_html=False)
+
         charging_data = load_charging_data(us_year)
 
-        return render_template('data.html', us_chart_filename=us_chart_filename,
-                               emissions_data=emissions_data.to_dict(orient='records'),
+        return render_template('data.html', us_chart_html=us_chart_html,
+                               emissions_chart_html=emissions_chart_html,
                                charging_data=charging_data)
 
     elif data_type == 'eu':
@@ -140,15 +137,14 @@ def data():
                                hover_data={'Registrations': ':,'}
                                )
 
-        eu_chart_filename = f"eu_registration_chart_{eu_year}.html" if eu_year else "eu_registration_chart_all.html"
-        eu_chart_path = os.path.join(app.root_path, 'static', eu_chart_filename)
-        eu_fig.write_html(eu_chart_path)
+        eu_chart_html = eu_fig.to_html(full_html=False)
 
-        eu_ev_data = load_eu_ev_data()  # Load the new EU EV dataset
+        eu_ev_data = load_eu_ev_data()
 
-        return render_template('data.html', eu_chart_filename=eu_chart_filename, eu_ev_data=eu_ev_data.to_dict(orient='records'))
+        return render_template('data.html', eu_chart_html=eu_chart_html,
+                               eu_ev_data=eu_ev_data.to_dict(orient='records'))
 
     return render_template('data.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', debug=True)
