@@ -16,7 +16,7 @@ jobs:
               uses: appleboy/ssh-action@master
               with:
                 host: ${{ secrets.EC2_HOST }}
-                username: ec2-user
+                username: ubuntu
                 key: ${{ secrets.DEPLOY_KEY }}
                 port: 22
                 script: |
