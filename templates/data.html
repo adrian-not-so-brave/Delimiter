@@ -82,19 +82,19 @@
             </ul>
         </nav>
     </header>
-    
+
     <main>
         {% if us_chart_html %}
             <h1>US EV Registration Percentages by State</h1>
             <div>
                 {{ us_chart_html|safe }}
             </div>
-            
+
             <h2>Total Pounds of CO2 Equivalent by Car Type</h2>
             <div>
                 {{ emissions_chart_html|safe }}
             </div>
-            
+
             <h2>Charging Station Information</h2>
             <table>
                 <tr>
@@ -110,6 +110,30 @@
                     <td>{{ charging_data['Station Locations'] }}</td>
                 </tr>
             </table>
+
+            <h2>CO2 Emissions Reduction Calculator</h2>
+            <form method="POST">
+                <label for="state">Select a state:</label>
+                <select name="state" id="state">
+                    {% for state in us_data['State'].unique() %}
+                    <option value="{{ state }}">{{ state }}</option>
+                    {% endfor %}
+                </select>
+                <br>
+                <label for="ev_increase_pct">Increase in EV percentage:</label>
+                <input type="number" name="ev_increase_pct" id="ev_increase_pct" min="0" max="100" step="1" value="10" required>
+                <button type="submit">Calculate</button>
+            </form>
+
+            {% if co2_reduction_data %}
+            <div>
+                <h3>CO2 Emissions Reduction for {{ co2_reduction_data['state'] }}</h3>
+                <p>Increase in EV percentage: {{ co2_reduction_data['ev_increase_pct'] }}%</p>
+                <p>CO2 Emissions Reduction: {{ co2_reduction_data['co2_reduction'] | round(2) }} pounds</p>
+                <p>CO2 Emissions Reduction Percentage: {{ co2_reduction_data['co2_reduction_pct'] | round(2) }}%</p>
+            </div>
+            {% endif %}
+
         {% elif eu_chart_html %}
             <h1>EU Vehicle Registrations by Country</h1>
             <div>
@@ -139,7 +163,7 @@
             </table>
         {% endif %}
     </main>
-    
+
     <footer>
         &copy; 2023 EV Data Visualization. All rights reserved.
     </footer>

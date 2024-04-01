@@ -17,7 +17,7 @@ def load_us_data(year):
             data_frames.append(df)
         data = pd.concat(data_frames)
         data = data.groupby('State').sum().reset_index()
-    
+
     return data
 
 def load_state_mapping():
@@ -62,7 +62,7 @@ def load_eu_data(year):
             data_frames.append(df)
         data = pd.concat(data_frames)
         data = data.groupby('Country')['Registrations'].sum().reset_index()
-    
+
     return data
 
 def load_eu_ev_data():
@@ -70,11 +70,37 @@ def load_eu_ev_data():
     data = pd.read_csv(filename)
     return data
 
+def calculate_co2_reduction(state, ev_increase_pct, us_data, emissions_data):
+    state_data = us_data[us_data['State'] == state].iloc[0]
+    ev_count = state_data['Electric (EV)']
+    gasoline_count = state_data['Gasoline']
+
+    current_ev_pct = ev_count / (ev_count + gasoline_count) * 100
+    new_ev_pct = current_ev_pct * (1 + ev_increase_pct / 100)
+
+    ev_emissions = emissions_data[emissions_data['Car Type'] == 'All Electric']['Total Pounds of CO2 Equivalent'].values[0]
+    gasoline_emissions = emissions_data[emissions_data['Car Type'] == 'Gasoline']['Total Pounds of CO2 Equivalent'].values[0]
+
+    current_emissions = ev_count * ev_emissions + gasoline_count * gasoline_emissions
+    new_ev_count = (ev_count + gasoline_count) * (new_ev_pct / 100)
+    new_gasoline_count = (ev_count + gasoline_count) - new_ev_count
+    new_emissions = new_ev_count * ev_emissions + new_gasoline_count * gasoline_emissions
+
+    co2_reduction = current_emissions - new_emissions
+    co2_reduction_pct = (co2_reduction / current_emissions) * 100
+
+    return {
+        'state': state,
+        'ev_increase_pct': ev_increase_pct,
+        'co2_reduction': co2_reduction,
+        'co2_reduction_pct': co2_reduction_pct
+    }
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/data')
+@app.route('/data', methods=['GET', 'POST'])
 def data():
     data_type = request.args.get('data_type')
     us_year = request.args.get('us_year', default=None)
@@ -120,9 +146,18 @@ def data():
 
         charging_data = load_charging_data(us_year)
 
+        if request.method == 'POST':
+            state = request.form['state']
+            ev_increase_pct = float(request.form['ev_increase_pct'])
+            co2_reduction_data = calculate_co2_reduction(state, ev_increase_pct, us_data, emissions_data)
+        else:
+            co2_reduction_data = None
+
         return render_template('data.html', us_chart_html=us_chart_html,
                                emissions_chart_html=emissions_chart_html,
-                               charging_data=charging_data)
+                               charging_data=charging_data,
+                               us_data=us_data,
+                               co2_reduction_data=co2_reduction_data)
 
     elif data_type == 'eu':
         eu_data = load_eu_data(eu_year)
