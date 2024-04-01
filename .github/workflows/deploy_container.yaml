@@ -4,18 +4,18 @@ jobs:
     github-job-demo:
         runs-on: ubuntu-latest
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v3
-            - name: Log in to Docker Container Registry
-              run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login -u r0w3na --password-stdin
-            - name: Build and push Docker image
-              run: |
-                docker build . -t r0w3na/delimiter:${{ github.sha }}
-                docker push r0w3na/delimiter:${{ github.sha }}
+            # - name: Checkout code
+            #   uses: actions/checkout@v3
+            # - name: Log in to Docker Container Registry
+            #   run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login -u r0w3na --password-stdin
+            # - name: Build and push Docker image
+            #   run: |
+            #     docker build . -t r0w3na/delimiter:${{ github.sha }}
+            #     docker push r0w3na/delimiter:${{ github.sha }}
             - name: Run container
               uses: appleboy/ssh-action@master
               with:
-                host: ${{ secrets.EC2_HOST }}
+                host: '54.147.79.203'
                 username: ubuntu
                 key: ${{ secrets.DEPLOY_KEY }}
                 port: 22
