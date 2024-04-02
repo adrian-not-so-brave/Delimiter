@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 import pandas as pd
 import plotly.express as px
 import os
+import csv
 
 app = Flask(__name__)
 
@@ -10,7 +11,7 @@ def load_us_data(year):
         filename = os.path.join("Raw Data", f"{year}.csv")
         data = pd.read_csv(filename, thousands=',', skiprows=1, header=0)
     else:
-        filenames = [os.path.join("Raw Data", f"{yr}.csv") for yr in [2016, 2017, 2018, 2019, 2020]]
+        filenames = [os.path.join("Raw Data", f"{yr}.csv") for yr in [2016, 2017, 2018, 2019, 2020, 2022]]  # Add 2022 to the list
         data_frames = []
         for filename in filenames:
             df = pd.read_csv(filename, thousands=',', skiprows=1, header=0)
@@ -32,8 +33,9 @@ def load_emissions_data():
 
 def load_charging_data(year):
     filename = os.path.join("Raw Data", "us_total_charging.csv")
-    data = pd.read_csv(filename)
+    data = pd.read_csv(filename, quotechar='"', skipinitialspace=True)
     data.columns = data.columns.str.strip()  # Remove leading/trailing whitespace from column names
+    data = data.applymap(lambda x: int(str(x).replace(',', '')))  # Convert values to integers
     if year:
         data = data[data['Year'] == int(year)].iloc[0]
     else:
@@ -70,31 +72,94 @@ def load_eu_ev_data():
     data = pd.read_csv(filename)
     return data
 
-def calculate_co2_reduction(state, ev_increase_pct, us_data, emissions_data):
-    state_data = us_data[us_data['State'] == state].iloc[0]
-    ev_count = state_data['Electric (EV)']
-    gasoline_count = state_data['Gasoline']
+def load_total_cars_data():
+    total_cars_data = {}
+    file_path = os.path.join("Raw Data", "total_cars_us.csv")
+    with open(file_path, 'r') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)  # Skip the header row
+        for row in csv_reader:
+            state = row[0].strip()
+            total_cars_str = row[-1].replace(',', '')
+            if total_cars_str:
+                try:
+                    total_cars = int(total_cars_str)
+                    total_cars_data[state] = total_cars
+                except ValueError:
+                    print(f"Invalid value for state: {state}")
+            else:
+                print(f"Empty value for state: {state}")
+    return total_cars_data
 
-    current_ev_pct = ev_count / (ev_count + gasoline_count) * 100
-    new_ev_pct = current_ev_pct * (1 + ev_increase_pct / 100)
+def calculate_co2_reduction(state, ev_increase_pct, phev_increase_pct, hev_increase_pct, us_data, emissions_data):
+    try:
+        state_data = us_data[us_data['State'] == state].iloc[0]
+        ev_count = state_data['Electric (EV)']
+        phev_count = state_data['Plug-In Hybrid Electric (PHEV)']
+        hev_count = state_data['Hybrid Electric (HEV)']
+        gasoline_count = state_data['Gasoline']
 
-    ev_emissions = emissions_data[emissions_data['Car Type'] == 'All Electric']['Total Pounds of CO2 Equivalent'].values[0]
-    gasoline_emissions = emissions_data[emissions_data['Car Type'] == 'Gasoline']['Total Pounds of CO2 Equivalent'].values[0]
+        total_vehicles = ev_count + phev_count + hev_count + gasoline_count
 
-    current_emissions = ev_count * ev_emissions + gasoline_count * gasoline_emissions
-    new_ev_count = (ev_count + gasoline_count) * (new_ev_pct / 100)
-    new_gasoline_count = (ev_count + gasoline_count) - new_ev_count
-    new_emissions = new_ev_count * ev_emissions + new_gasoline_count * gasoline_emissions
+        new_ev_count = int(ev_count * (1 + ev_increase_pct / 100))
+        new_phev_count = int(phev_count * (1 + phev_increase_pct / 100))
+        new_hev_count = int(hev_count * (1 + hev_increase_pct / 100))
+        new_gasoline_count = int(total_vehicles - new_ev_count - new_phev_count - new_hev_count)
 
-    co2_reduction = current_emissions - new_emissions
-    co2_reduction_pct = (co2_reduction / current_emissions) * 100
+        ev_emissions = emissions_data[emissions_data['Car Type'] == 'All Electric']['Total Pounds of CO2 Equivalent'].values[0]
+        phev_emissions = emissions_data[emissions_data['Car Type'] == 'Plug In Hybrid']['Total Pounds of CO2 Equivalent'].values[0]
+        hev_emissions = emissions_data[emissions_data['Car Type'] == 'Hybrid']['Total Pounds of CO2 Equivalent'].values[0]
+        gasoline_emissions = emissions_data[emissions_data['Car Type'] == 'Gasoline']['Total Pounds of CO2 Equivalent'].values[0]
 
-    return {
-        'state': state,
-        'ev_increase_pct': ev_increase_pct,
-        'co2_reduction': co2_reduction,
-        'co2_reduction_pct': co2_reduction_pct
-    }
+        current_emissions = ev_count * ev_emissions + phev_count * phev_emissions + hev_count * hev_emissions + gasoline_count * gasoline_emissions
+        new_emissions = new_ev_count * ev_emissions + new_phev_count * phev_emissions + new_hev_count * hev_emissions + new_gasoline_count * gasoline_emissions
+
+        co2_reduction = current_emissions - new_emissions
+        co2_reduction_pct = (co2_reduction / current_emissions) * 100
+
+        co2_reduction_ev = (new_ev_count - ev_count) * (gasoline_emissions - ev_emissions)
+        co2_reduction_phev = (new_phev_count - phev_count) * (gasoline_emissions - phev_emissions)
+        co2_reduction_hev = (new_hev_count - hev_count) * (gasoline_emissions - hev_emissions)
+
+        return {
+            'state': state,
+            'ev_increase_pct': ev_increase_pct,
+            'phev_increase_pct': phev_increase_pct,
+            'hev_increase_pct': hev_increase_pct,
+            'co2_reduction': co2_reduction,
+            'co2_reduction_pct': co2_reduction_pct,
+            'co2_reduction_ev': co2_reduction_ev,
+            'co2_reduction_phev': co2_reduction_phev,
+            'co2_reduction_hev': co2_reduction_hev,
+            'ev_count': ev_count,
+            'phev_count': phev_count,
+            'hev_count': hev_count,
+            'gasoline_count': gasoline_count,
+            'new_ev_count': new_ev_count,
+            'new_phev_count': new_phev_count,
+            'new_hev_count': new_hev_count,
+            'new_gasoline_count': new_gasoline_count
+        }
+    except (KeyError, IndexError, ValueError, ZeroDivisionError):
+        return {
+            'state': state,
+            'ev_increase_pct': ev_increase_pct,
+            'phev_increase_pct': phev_increase_pct,
+            'hev_increase_pct': hev_increase_pct,
+            'co2_reduction': None,
+            'co2_reduction_pct': None,
+            'co2_reduction_ev': None,
+            'co2_reduction_phev': None,
+            'co2_reduction_hev': None,
+            'ev_count': None,
+            'phev_count': None,
+            'hev_count': None,
+            'gasoline_count': None,
+            'new_ev_count': None,
+            'new_phev_count': None,
+            'new_hev_count': None,
+            'new_gasoline_count': None
+        }
 
 @app.route('/')
 def index():
@@ -111,29 +176,33 @@ def data():
         state_mapping = load_state_mapping()
         us_data = pd.merge(us_data, state_mapping, on='State', how='left')
 
-        us_data['EV Percentage'] = (us_data['Electric (EV)'] / (us_data['Electric (EV)'] + us_data['Gasoline'])) * 100
-        us_data['EV Percentage'] = us_data['EV Percentage'].round(2)
+        us_data['Total Alt. Vehicles'] = us_data['Electric (EV)'] + us_data['Plug-In Hybrid Electric (PHEV)'] + us_data['Hybrid Electric (HEV)']
+        us_data['Total Vehicles'] = us_data['Total Alt. Vehicles'] + us_data['Gasoline']
+        us_data['Alt. Vehicle Percentage'] = (us_data['Total Alt. Vehicles'] / us_data['Total Vehicles']) * 100
+        us_data['Alt. Vehicle Percentage'] = us_data['Alt. Vehicle Percentage'].round(2)
 
         us_fig = px.choropleth(us_data,
                                locations='State Code',
                                locationmode='USA-states',
-                               color='EV Percentage',
+                               color='Alt. Vehicle Percentage',
                                color_continuous_scale='Viridis',
-                               range_color=(0, us_data['EV Percentage'].max()),
+                               range_color=(0, us_data['Alt. Vehicle Percentage'].max()),
                                scope='usa',
-                               title='US EV Registration Percentages by State',
+                               title='US Alternative Vehicle Registration Percentages by State',
                                hover_name='State',
                                hover_data={'State Code': False,
-                                           'EV Percentage': ':.2f',
+                                           'Alt. Vehicle Percentage': ':.2f',
                                            'Electric (EV)': ':,',
+                                           'Plug-In Hybrid Electric (PHEV)': ':,',
+                                           'Hybrid Electric (HEV)': ':,',
                                            'Gasoline': ':,'}
                                )
 
         us_fig.update_layout(
             coloraxis_colorbar=dict(
-                title='EV Percentage',
-                tickvals=[i for i in range(0, int(us_data['EV Percentage'].max()) + 1, 2)],
-                ticktext=[f"{i}%" for i in range(0, int(us_data['EV Percentage'].max()) + 1, 2)]
+                title='Alt. Vehicle Percentage',
+                tickvals=[i for i in range(0, int(us_data['Alt. Vehicle Percentage'].max()) + 1, 2)],
+                ticktext=[f"{i}%" for i in range(0, int(us_data['Alt. Vehicle Percentage'].max()) + 1, 2)]
             )
         )
 
@@ -146,10 +215,14 @@ def data():
 
         charging_data = load_charging_data(us_year)
 
+        total_cars_data = load_total_cars_data()
+
         if request.method == 'POST':
             state = request.form['state']
             ev_increase_pct = float(request.form['ev_increase_pct'])
-            co2_reduction_data = calculate_co2_reduction(state, ev_increase_pct, us_data, emissions_data)
+            phev_increase_pct = float(request.form['phev_increase_pct'])
+            hev_increase_pct = float(request.form['hybrid_increase_pct'])
+            co2_reduction_data = calculate_co2_reduction(state, ev_increase_pct, phev_increase_pct, hev_increase_pct, us_data, emissions_data)
         else:
             co2_reduction_data = None
 

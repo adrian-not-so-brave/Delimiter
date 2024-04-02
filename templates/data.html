@@ -103,11 +103,23 @@
                 </tr>
                 <tr>
                     <th>EVSE Ports</th>
-                    <td>{{ charging_data['EVSE Ports'] }}</td>
+                    <td>
+                        {% if charging_data['EVSE Ports'] is defined and charging_data['EVSE Ports'] is not none %}
+                            {{ "{:,}".format(charging_data['EVSE Ports'] | int) }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
                 </tr>
                 <tr>
                     <th>Station Locations</th>
-                    <td>{{ charging_data['Station Locations'] }}</td>
+                    <td>
+                        {% if charging_data['Station Locations'] is defined and charging_data['Station Locations'] is not none %}
+                            {{ "{:,}".format(charging_data['Station Locations'] | int) }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
                 </tr>
             </table>
 
@@ -121,16 +133,126 @@
                 </select>
                 <br>
                 <label for="ev_increase_pct">Increase in EV percentage:</label>
-                <input type="number" name="ev_increase_pct" id="ev_increase_pct" min="0" max="100" step="1" value="10" required>
+                <input type="number" name="ev_increase_pct" id="ev_increase_pct" min="0" max="1000" step="1" value="10" required>
+                <br>
+                <label for="phev_increase_pct">Increase in PHEV percentage:</label>
+                <input type="number" name="phev_increase_pct" id="phev_increase_pct" min="0" max="1000" step="1" value="10" required>
+                <br>
+                <label for="hybrid_increase_pct">Increase in Hybrid percentage:</label>
+                <input type="number" name="hybrid_increase_pct" id="hybrid_increase_pct" min="0" max="1000" step="1" value="10" required>
                 <button type="submit">Calculate</button>
             </form>
-
+            
             {% if co2_reduction_data %}
-            <div>
+            <div class="calculator-output">
                 <h3>CO2 Emissions Reduction for {{ co2_reduction_data['state'] }}</h3>
-                <p>Increase in EV percentage: {{ co2_reduction_data['ev_increase_pct'] }}%</p>
-                <p>CO2 Emissions Reduction: {{ co2_reduction_data['co2_reduction'] | round(2) }} pounds</p>
-                <p>CO2 Emissions Reduction Percentage: {{ co2_reduction_data['co2_reduction_pct'] | round(2) }}%</p>
+                <div class="input-parameters">
+                    <p><strong>Input Parameters:</strong></p>
+                    <ul>
+                        <li>Increase in EV percentage: {{ co2_reduction_data['ev_increase_pct'] }}%</li>
+                        <li>Increase in PHEV percentage: {{ co2_reduction_data['phev_increase_pct'] }}%</li>
+                        <li>Increase in Hybrid percentage: {{ co2_reduction_data['hev_increase_pct'] }}%</li>
+                    </ul>
+                </div>
+                <div class="current-counts">
+                    <p><strong>Current Vehicle Counts:</strong></p>
+                    <ul>
+                        <li>EV Count: 
+                            {% if co2_reduction_data['ev_count'] is defined and co2_reduction_data['ev_count'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['ev_count']) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                        <li>PHEV Count: 
+                            {% if co2_reduction_data['phev_count'] is defined and co2_reduction_data['phev_count'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['phev_count']) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                        <li>Hybrid Count: 
+                            {% if co2_reduction_data['hev_count'] is defined and co2_reduction_data['hev_count'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['hev_count']) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                        <li>Gasoline Count: 
+                            {% if co2_reduction_data['gasoline_count'] is defined and co2_reduction_data['gasoline_count'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['gasoline_count']) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+                <div class="adjusted-counts">
+                    <p><strong>Adjusted Vehicle Counts:</strong></p>
+                    <ul>
+                        <li>EV Count: 
+                            {% if co2_reduction_data['new_ev_count'] is defined and co2_reduction_data['new_ev_count'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['new_ev_count']) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                        <li>PHEV Count: 
+                            {% if co2_reduction_data['new_phev_count'] is defined and co2_reduction_data['new_phev_count'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['new_phev_count']) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                        <li>Hybrid Count: 
+                            {% if co2_reduction_data['new_hev_count'] is defined and co2_reduction_data['new_hev_count'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['new_hev_count']) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                        <li>Gasoline Count: 
+                            {% if co2_reduction_data['new_gasoline_count'] is defined and co2_reduction_data['new_gasoline_count'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['new_gasoline_count']) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+                <div class="co2-reductions">
+                    <p><strong>CO2 Emissions Reductions:</strong></p>
+                    <ul>
+                        <li>EV only: 
+                            {% if co2_reduction_data['co2_reduction_ev'] is defined and co2_reduction_data['co2_reduction_ev'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['co2_reduction_ev'] | round(2)) }} pounds
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                        <li>PHEV only: 
+                            {% if co2_reduction_data['co2_reduction_phev'] is defined and co2_reduction_data['co2_reduction_phev'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['co2_reduction_phev'] | round(2)) }} pounds
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                        <li>Hybrid only: 
+                            {% if co2_reduction_data['co2_reduction_hev'] is defined and co2_reduction_data['co2_reduction_hev'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['co2_reduction_hev'] | round(2)) }} pounds
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                        <li>Combined: 
+                            {% if co2_reduction_data['co2_reduction'] is defined and co2_reduction_data['co2_reduction'] is not none and co2_reduction_data['co2_reduction_pct'] is defined and co2_reduction_data['co2_reduction_pct'] is not none %}
+                                {{ "{:,}".format(co2_reduction_data['co2_reduction'] | round(2)) }} pounds ({{ co2_reduction_data['co2_reduction_pct'] | round(2) }}%)
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
             </div>
             {% endif %}
 
@@ -154,9 +276,27 @@
                     {% for row in eu_ev_data %}
                     <tr>
                         <td>{{ row['Country:text'] }}</td>
-                        <td>{{ row['Battery electric vehicels (number):number'] }}</td>
-                        <td>{{ row['Plug-in hybrid electric vehicles (number):number'] }}</td>
-                        <td>{{ row['Total:number'] }}</td>
+                        <td>
+                            {% if row['Battery electric vehicels (number):number'] is defined and row['Battery electric vehicels (number):number'] is not none %}
+                                {{ "{:,}".format(row['Battery electric vehicels (number):number'] | int) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row['Plug-in hybrid electric vehicles (number):number'] is defined and row['Plug-in hybrid electric vehicles (number):number'] is not none %}
+                                {{ "{:,}".format(row['Plug-in hybrid electric vehicles (number):number'] | int) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row['Total:number'] is defined and row['Total:number'] is not none %}
+                                {{ "{:,}".format(row['Total:number'] | int) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
