@@ -22,3 +22,12 @@ jobs:
                 script: |
                   docker stop $(docker ps -q)
                   docker run -d -p 5000:5000 r0w3na/delimiter:${{ github.sha }}
+            - name: Publish SNS Topic
+              uses: nothingalike/sns-publish-topic@v1.6
+              with:
+                MESSAGE: "message"
+                TOPIC_ARN: ${{ secrets.SNS_TOPIC_ARN }}
+              env:
+                AWS_REGION: ${{ secrets.AWS_REGION }}
+                AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}      
