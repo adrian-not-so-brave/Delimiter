@@ -11,7 +11,7 @@ def load_us_data(year):
         filename = os.path.join("Raw Data", f"{year}.csv")
         data = pd.read_csv(filename, thousands=',', skiprows=1, header=0)
     else:
-        filenames = [os.path.join("Raw Data", f"{yr}.csv") for yr in [2016, 2017, 2018, 2019, 2020]]
+        filenames = [os.path.join("Raw Data", f"{yr}.csv") for yr in [2016, 2017, 2018, 2019, 2020, 2022]]  # Add 2022 to the list
         data_frames = []
         for filename in filenames:
             df = pd.read_csv(filename, thousands=',', skiprows=1, header=0)
@@ -33,8 +33,9 @@ def load_emissions_data():
 
 def load_charging_data(year):
     filename = os.path.join("Raw Data", "us_total_charging.csv")
-    data = pd.read_csv(filename)
+    data = pd.read_csv(filename, quotechar='"', skipinitialspace=True)
     data.columns = data.columns.str.strip()  # Remove leading/trailing whitespace from column names
+    data = data.applymap(lambda x: int(str(x).replace(',', '')))  # Convert values to integers
     if year:
         data = data[data['Year'] == int(year)].iloc[0]
     else:

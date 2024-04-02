@@ -105,7 +105,7 @@
                     <th>EVSE Ports</th>
                     <td>
                         {% if charging_data['EVSE Ports'] is defined and charging_data['EVSE Ports'] is not none %}
-                            {{ "{:,}".format(charging_data['EVSE Ports']) }}
+                            {{ "{:,}".format(charging_data['EVSE Ports'] | int) }}
                         {% else %}
                             N/A
                         {% endif %}
@@ -115,7 +115,7 @@
                     <th>Station Locations</th>
                     <td>
                         {% if charging_data['Station Locations'] is defined and charging_data['Station Locations'] is not none %}
-                            {{ "{:,}".format(charging_data['Station Locations']) }}
+                            {{ "{:,}".format(charging_data['Station Locations'] | int) }}
                         {% else %}
                             N/A
                         {% endif %}
@@ -278,21 +278,21 @@
                         <td>{{ row['Country:text'] }}</td>
                         <td>
                             {% if row['Battery electric vehicels (number):number'] is defined and row['Battery electric vehicels (number):number'] is not none %}
-                                {{ "{:,}".format(row['Battery electric vehicels (number):number']) }}
+                                {{ "{:,}".format(row['Battery electric vehicels (number):number'] | int) }}
                             {% else %}
                                 N/A
                             {% endif %}
                         </td>
                         <td>
                             {% if row['Plug-in hybrid electric vehicles (number):number'] is defined and row['Plug-in hybrid electric vehicles (number):number'] is not none %}
-                                {{ "{:,}".format(row['Plug-in hybrid electric vehicles (number):number']) }}
+                                {{ "{:,}".format(row['Plug-in hybrid electric vehicles (number):number'] | int) }}
                             {% else %}
                                 N/A
                             {% endif %}
                         </td>
                         <td>
                             {% if row['Total:number'] is defined and row['Total:number'] is not none %}
-                                {{ "{:,}".format(row['Total:number']) }}
+                                {{ "{:,}".format(row['Total:number'] | int) }}
                             {% else %}
                                 N/A
                             {% endif %}
