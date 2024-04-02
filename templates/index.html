@@ -2,32 +2,75 @@
 <html>
 <head>
     <title>EV Data Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        form {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1>EV Data Visualization</h1>
-    
-    <form action="/data" method="get">
-        <label for="us_year">Select US Year:</label>
-        <select name="us_year" id="us_year">
-            <option value="">All Years</option>
-            <option value="2016">2016</option>
-            <option value="2017">2017</option>
-            <option value="2018">2018</option>
-            <option value="2019">2019</option>
-            <option value="2020">2020</option>
-        </select>
-        <button type="submit" name="data_type" value="us">Filter US Data</button>
-        <br>
-        <label for="eu_year">Select EU Year:</label>
-        <select name="eu_year" id="eu_year">
-            <option value="">All Years</option>
-            <option value="2016">2016</option>
-            <option value="2017">2017</option>
-            <option value="2018">2018</option>
-            <option value="2019">2019</option>
-            <option value="2020">2020</option>
-        </select>
-        <button type="submit" name="data_type" value="eu">Filter EU Data</button>
-    </form>
+    <div class="container">
+        <h1>EV Data Visualization</h1>
+        
+        <form action="/data" method="get">
+            <label for="us_year">Select US Year:</label>
+            <select name="us_year" id="us_year">
+                <option value="">All Years</option>
+                <option value="2016">2016</option>
+                <option value="2017">2017</option>
+                <option value="2018">2018</option>
+                <option value="2019">2019</option>
+                <option value="2020">2020</option>
+            </select>
+            <button type="submit" name="data_type" value="us">Filter US Data</button>
+            <br>
+            <label for="eu_year">Select EU Year:</label>
+            <select name="eu_year" id="eu_year">
+                <option value="">All Years</option>
+                <option value="2016">2016</option>
+                <option value="2017">2017</option>
+                <option value="2018">2018</option>
+                <option value="2019">2019</option>
+                <option value="2020">2020</option>
+            </select>
+            <button type="submit" name="data_type" value="eu">Filter EU Data</button>
+        </form>
+    </div>
 </body>
 </html>
