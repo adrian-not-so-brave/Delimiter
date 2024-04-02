@@ -100,10 +100,10 @@ def calculate_co2_reduction(state, ev_increase_pct, phev_increase_pct, hev_incre
 
         total_vehicles = ev_count + phev_count + hev_count + gasoline_count
 
-        new_ev_count = ev_count * (1 + ev_increase_pct / 100)
-        new_phev_count = phev_count * (1 + phev_increase_pct / 100)
-        new_hev_count = hev_count * (1 + hev_increase_pct / 100)
-        new_gasoline_count = total_vehicles - new_ev_count - new_phev_count - new_hev_count
+        new_ev_count = int(ev_count * (1 + ev_increase_pct / 100))
+        new_phev_count = int(phev_count * (1 + phev_increase_pct / 100))
+        new_hev_count = int(hev_count * (1 + hev_increase_pct / 100))
+        new_gasoline_count = int(total_vehicles - new_ev_count - new_phev_count - new_hev_count)
 
         ev_emissions = emissions_data[emissions_data['Car Type'] == 'All Electric']['Total Pounds of CO2 Equivalent'].values[0]
         phev_emissions = emissions_data[emissions_data['Car Type'] == 'Plug In Hybrid']['Total Pounds of CO2 Equivalent'].values[0]
@@ -129,7 +129,15 @@ def calculate_co2_reduction(state, ev_increase_pct, phev_increase_pct, hev_incre
             'co2_reduction_pct': co2_reduction_pct,
             'co2_reduction_ev': co2_reduction_ev,
             'co2_reduction_phev': co2_reduction_phev,
-            'co2_reduction_hev': co2_reduction_hev
+            'co2_reduction_hev': co2_reduction_hev,
+            'ev_count': ev_count,
+            'phev_count': phev_count,
+            'hev_count': hev_count,
+            'gasoline_count': gasoline_count,
+            'new_ev_count': new_ev_count,
+            'new_phev_count': new_phev_count,
+            'new_hev_count': new_hev_count,
+            'new_gasoline_count': new_gasoline_count
         }
     except (KeyError, IndexError, ValueError, ZeroDivisionError):
         return {
@@ -141,7 +149,15 @@ def calculate_co2_reduction(state, ev_increase_pct, phev_increase_pct, hev_incre
             'co2_reduction_pct': None,
             'co2_reduction_ev': None,
             'co2_reduction_phev': None,
-            'co2_reduction_hev': None
+            'co2_reduction_hev': None,
+            'ev_count': None,
+            'phev_count': None,
+            'hev_count': None,
+            'gasoline_count': None,
+            'new_ev_count': None,
+            'new_phev_count': None,
+            'new_hev_count': None,
+            'new_gasoline_count': None
         }
 
 @app.route('/')
@@ -159,29 +175,33 @@ def data():
         state_mapping = load_state_mapping()
         us_data = pd.merge(us_data, state_mapping, on='State', how='left')
 
-        us_data['EV Percentage'] = (us_data['Electric (EV)'] / (us_data['Electric (EV)'] + us_data['Gasoline'])) * 100
-        us_data['EV Percentage'] = us_data['EV Percentage'].round(2)
+        us_data['Total Alt. Vehicles'] = us_data['Electric (EV)'] + us_data['Plug-In Hybrid Electric (PHEV)'] + us_data['Hybrid Electric (HEV)']
+        us_data['Total Vehicles'] = us_data['Total Alt. Vehicles'] + us_data['Gasoline']
+        us_data['Alt. Vehicle Percentage'] = (us_data['Total Alt. Vehicles'] / us_data['Total Vehicles']) * 100
+        us_data['Alt. Vehicle Percentage'] = us_data['Alt. Vehicle Percentage'].round(2)
 
         us_fig = px.choropleth(us_data,
                                locations='State Code',
                                locationmode='USA-states',
-                               color='EV Percentage',
+                               color='Alt. Vehicle Percentage',
                                color_continuous_scale='Viridis',
-                               range_color=(0, us_data['EV Percentage'].max()),
+                               range_color=(0, us_data['Alt. Vehicle Percentage'].max()),
                                scope='usa',
-                               title='US EV Registration Percentages by State',
+                               title='US Alternative Vehicle Registration Percentages by State',
                                hover_name='State',
                                hover_data={'State Code': False,
-                                           'EV Percentage': ':.2f',
+                                           'Alt. Vehicle Percentage': ':.2f',
                                            'Electric (EV)': ':,',
+                                           'Plug-In Hybrid Electric (PHEV)': ':,',
+                                           'Hybrid Electric (HEV)': ':,',
                                            'Gasoline': ':,'}
                                )
 
         us_fig.update_layout(
             coloraxis_colorbar=dict(
-                title='EV Percentage',
-                tickvals=[i for i in range(0, int(us_data['EV Percentage'].max()) + 1, 2)],
-                ticktext=[f"{i}%" for i in range(0, int(us_data['EV Percentage'].max()) + 1, 2)]
+                title='Alt. Vehicle Percentage',
+                tickvals=[i for i in range(0, int(us_data['Alt. Vehicle Percentage'].max()) + 1, 2)],
+                ticktext=[f"{i}%" for i in range(0, int(us_data['Alt. Vehicle Percentage'].max()) + 1, 2)]
             )
         )
 
