@@ -250,9 +250,51 @@ def data():
         eu_ev_data = load_eu_ev_data()
 
         return render_template('data.html', eu_chart_html=eu_chart_html,
-                               eu_ev_data=eu_ev_data.to_dict(orient='records'))
+                               eu_ev_data=eu_ev_data.to_dict(orient='records'),
+                               eu_data=eu_data) 
 
-    return render_template('data.html')
+    return render_template('data.html', eu_data=None)
+
+@app.route('/calculate_eu_ev_percentage', methods=['POST'])
+def calculate_eu_ev_percentage():
+    country = request.form['country']
+    eu_data = load_eu_data(None)
+    eu_ev_data = load_eu_ev_data()
+    
+    country_data = eu_data[eu_data['Country'] == country].iloc[0]
+    total_registrations = country_data['Registrations']
+    
+    country_ev_data = eu_ev_data[eu_ev_data['Country:text'] == country].iloc[0]
+    bev_count = country_ev_data['Battery electric vehicels (number):number']
+    phev_count = country_ev_data['Plug-in hybrid electric vehicles (number):number']
+    total_ev_count = bev_count + phev_count
+    
+    bev_percentage = (bev_count / total_registrations) * 100
+    phev_percentage = (phev_count / total_registrations) * 100
+    total_ev_percentage = (total_ev_count / total_registrations) * 100
+    
+    eu_ev_percentage = {
+        'country': country,
+        'bev_percentage': round(bev_percentage, 2),
+        'phev_percentage': round(phev_percentage, 2),
+        'total_ev_percentage': round(total_ev_percentage, 2)
+    }
+    
+    eu_fig = px.choropleth(eu_data,
+                           locations='Country',
+                           locationmode='country names',
+                           color='Registrations',
+                           color_continuous_scale='Viridis',
+                           scope='europe',
+                           title='EU Vehicle Registrations by Country',
+                           hover_name='Country',
+                           hover_data={'Registrations': ':,'}
+                           )
+
+    eu_chart_html = eu_fig.to_html(full_html=False)
+    
+    return render_template('data.html', eu_chart_html=eu_chart_html, eu_ev_data=eu_ev_data.to_dict(orient='records'),
+                           eu_data=eu_data, eu_ev_percentage=eu_ev_percentage)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
